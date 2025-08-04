@@ -201,11 +201,11 @@ export default function AuthPage() {
         <div className="text-center mt-8">
           <p className="text-sm text-gray-500">
             By signing in, you agree to our{" "}
-            <a href="#" className="text-orange-500 hover:text-orange-600 font-medium">
+            <a target="_blank" href="https://www.termsfeed.com/live/4236cf0a-26bf-4906-a2f7-2ed657504e30" className="text-orange-500 hover:text-orange-600 font-medium">
               Terms of Service
             </a>{" "}
             and{" "}
-            <a href="#" className="text-orange-500 hover:text-orange-600 font-medium">
+            <a target="_blank" href="https://www.termsfeed.com/live/2c454b58-1ec2-4d67-b41c-1e48d53985e8" className="text-orange-500 hover:text-orange-600 font-medium">
               Privacy Policy
             </a>
           </p>
