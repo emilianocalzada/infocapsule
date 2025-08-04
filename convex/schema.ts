@@ -39,7 +39,12 @@ const schema = defineSchema({
       summarySelector: v.string(),
     })),
     sourceType: v.string(),
-  }).index("byUserId", ["userId"]),
+    status: v.union(
+      v.literal("active"),
+      v.literal("error"),
+    ),
+  }).index("byUserId", ["userId"])
+    .index("byFetchrssId", ["fetchrssId"]),
   logs: defineTable({
     message: v.string(),
     feedId: v.id("rssFeeds"),

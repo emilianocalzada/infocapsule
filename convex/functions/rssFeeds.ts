@@ -38,14 +38,15 @@ export const createRssFeed = mutationWithAuth({
         selectors: args.selectors,
         sourceType: args.sourceType,
         fetchrssId: "",
+        status: "active",
       });
       await ctx.scheduler.runAfter(0, internal.parser.rss.createFeed, {
-          feedId,
-          url: args.url,
+        feedId,
+        url: args.url,
       });
     } catch (error) {
-        console.error(error);
-        throw new Error("Failed to create feed");
+      console.error(error);
+      throw new Error("Failed to create feed");
     }
   },
 });
@@ -64,12 +65,23 @@ export const deleteRssFeed = mutationWithAuth({
       throw new Error("Not authorized");
     }
 
-    // call fetchrss.com api to delete feed
-    await ctx.scheduler.runAfter(0, internal.parser.rss.deleteFeed, {
-        feedId: feed.fetchrssId,
-    });
+    await ctx.db.delete(args.id);
 
-    return await ctx.db.delete(args.id);
+    // check if there is any other feed item with the same fetchrssId
+    const otherFeeds = await ctx.db
+      .query("rssFeeds")
+      .withIndex("byFetchrssId", (q) => q.eq("fetchrssId", feed.fetchrssId))
+      .collect();
+    
+    const other = otherFeeds.filter((feed: any) => feed._id !== args.id);
+    
+    if (other.length === 0) {
+      // call fetchrss.com api to delete feed
+      await ctx.scheduler.runAfter(0, internal.parser.rss.deleteFeed, {
+        feedId: feed.fetchrssId,
+      });
+      return;
+    }
   },
 });
 
@@ -84,53 +96,58 @@ export const listRssFeeds = queryWithAuth(async (ctx) => {
 });
 
 export const updateRssFeed = internalMutation({
-    args: {
-        feedId: v.id("rssFeeds"),
-        rrsUrl: v.string(),
-        fetchrssId: v.string(),
-    },
-    handler: async (ctx, { feedId, rrsUrl, fetchrssId }) => {
-        await ctx.db.patch(feedId, {
-            rrsUrl,
-            fetchrssId,
-        });
-    },
+  args: {
+    feedId: v.id("rssFeeds"),
+    rrsUrl: v.string(),
+    fetchrssId: v.string(),
+    status: v.union(v.literal("active"), v.literal("error")),
+  },
+  handler: async (ctx, { feedId, rrsUrl, fetchrssId, status }) => {
+    await ctx.db.patch(feedId, {
+      rrsUrl,
+      fetchrssId,
+      status,
+    });
+  },
 });
 
 export const listRssFeedsInternal = internalQuery({
-    args: {
-        userId: v.id("users"),
-    },
-    handler: async (ctx, { userId }) => {
-        const rssFeeds = await ctx.db
-            .query("rssFeeds")
-            .withIndex("byUserId", (q) => q.eq("userId", userId))
-            .order("desc")
-            .collect();
-    
-        return rssFeeds;
-    },
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, { userId }) => {
+    const rssFeeds = await ctx.db
+      .query("rssFeeds")
+      .withIndex("byUserId", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+
+    // Filter out any feeds that are not active
+    const activeFeeds = rssFeeds.filter((feed: any) => feed.status === "active");
+
+    return activeFeeds;
+  },
 });
 
 export const updateLastFetched = internalMutation({
-    args: {
-        feedId: v.id("rssFeeds"),
-        lastFetched: v.number(),
-    },
-    handler: async (ctx, { feedId, lastFetched }) => {
-        await ctx.db.patch(feedId, {
-            lastFetched,
-        });
-    },
+  args: {
+    feedId: v.id("rssFeeds"),
+    lastFetched: v.number(),
+  },
+  handler: async (ctx, { feedId, lastFetched }) => {
+    await ctx.db.patch(feedId, {
+      lastFetched,
+    });
+  },
 });
 
 export const sendTestDigest = mutationWithAuth({
-    handler: async (ctx) => {
-        // Schedule the test digest processing as an action
-        await ctx.scheduler.runAfter(0, internal.parser.rss.processTestDigest, {
-            userId: ctx.authUserId,
-        });
+  handler: async (ctx) => {
+    // Schedule the test digest processing as an action
+    await ctx.scheduler.runAfter(0, internal.parser.rss.processTestDigest, {
+      userId: ctx.authUserId,
+    });
 
-        return { success: true };
-    },
+    return { success: true };
+  },
 });

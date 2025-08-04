@@ -53,11 +53,24 @@ export const createFeed = internalAction({
     args: {
         feedId: v.id("rssFeeds"),
         url: v.string(),
+        containerSelector: v.optional(v.string()),
+        headlineSelector: v.optional(v.string()),
+        summarySelector: v.optional(v.string()),
     },
-    handler: async (ctx, { feedId, url }) => {
+    handler: async (ctx, { feedId, url, containerSelector, headlineSelector, summarySelector }) => {
         // Insert into fetchrss.com
         const formData = new FormData();
         formData.append('url', url);
+
+        if (containerSelector) {
+            formData.append('news_selector', containerSelector);
+        }
+        if (headlineSelector) {
+            formData.append('title_selector', headlineSelector);
+        }
+        if (summarySelector) {
+            formData.append('content_selector', summarySelector);
+        }
 
         const response = await fetch('https://fetchrss.com/api/v2/feeds', {
             method: 'POST',
@@ -67,13 +80,24 @@ export const createFeed = internalAction({
             body: formData
         });
         const data = await response.json();
-        console.log(data);
 
-        await ctx.runMutation(internal.functions.rssFeeds.updateRssFeed, {
-            feedId,
-            rrsUrl: data.feed.rss_url,
-            fetchrssId: data.feed.id,
-        });
+        if (data.success) {
+            await ctx.runMutation(internal.functions.rssFeeds.updateRssFeed, {
+                feedId,
+                rrsUrl: data.feed.rss_url,
+                fetchrssId: data.feed.id,
+                status: "active",
+            });
+        } else {
+            console.error(`Failed to create feed: ${data.error}`);
+
+            await ctx.runMutation(internal.functions.rssFeeds.updateRssFeed, {
+                feedId,
+                status: "error",
+                rrsUrl: "",
+                fetchrssId: "",
+            });
+        }
     },
 });
 
@@ -83,23 +107,23 @@ export const deleteFeed = internalAction({
     },
     handler: async (ctx, { feedId }) => {
         try {
-        // Delete from fetchrss.com
-        const response = await fetch(`https://fetchrss.com/api/v2/feeds/${feedId}`, {
-            method: 'DELETE',
-            headers: {
-                'API-KEY': process.env.FETCHRSS_API_KEY || "",
-            },
-        });
-        const data = await response.json();
-        if (data?.success) {
-            console.log(`Deleted feed ${feedId} from fetchrss.com`);
-        }
+            // Delete from fetchrss.com
+            const response = await fetch(`https://fetchrss.com/api/v2/feeds/${feedId}`, {
+                method: 'DELETE',
+                headers: {
+                    'API-KEY': process.env.FETCHRSS_API_KEY || "",
+                },
+            });
+            const data = await response.json();
+            if (data?.success) {
+                console.log(`Deleted feed ${feedId} from fetchrss.com`);
+            }
         } catch (error) {
             console.error(`Failed to delete feed ${feedId}:`, error);
         }
     },
 });
-        
+
 
 async function processUserFeeds(ctx: any, userId: string) {
     const feedItems = await ctx.runQuery(internal.functions.rssFeeds.listRssFeedsInternal, { userId });
@@ -113,8 +137,24 @@ async function processUserFeeds(ctx: any, userId: string) {
 
             const lastFetched = feedItem.lastFetched;
             feed.items?.forEach((item: any) => {
-                if (!lastFetched || new Date(item.date) > new Date(lastFetched)) {
-                    newItems.push(item);
+                try {
+                    const itemDate = item.date || item.pubDate || item.isoDate;
+                    if (!itemDate) {
+                        console.warn('Item missing date field:', item.title);
+                        return;
+                    }
+
+                    const itemDateTime = new Date(itemDate);
+                    if (isNaN(itemDateTime.getTime())) {
+                        console.warn('Invalid date format:', itemDate);
+                        return;
+                    }
+
+                    if (!lastFetched || itemDateTime > new Date(lastFetched)) {
+                        newItems.push(item);
+                    }
+                } catch (error) {
+                    console.error('Error processing item date:', error);
                 }
             });
 
