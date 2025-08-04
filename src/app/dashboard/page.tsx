@@ -162,7 +162,7 @@ export default function DashboardPage() {
 
     try {
       await sendTestDigest();
-      setTestDigestSuccess("Test digest sent successfully! Check your email in a few moments.");
+      setTestDigestSuccess("We are processing your test digest. It will take a few seconds. Please check your inbox.");
       setTimeout(() => setTestDigestSuccess(null), 8000);
     } catch (error) {
       console.error("Failed to send test digest:", error);
@@ -372,39 +372,54 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-semibold text-gray-900">
                 Your Information Sources
               </h2>
-              <div className="flex items-center gap-3">
-                {rssFeeds && rssFeeds.length > 0 && (
-                  <>
-                    <button
-                      onClick={handleSendTestDigest}
-                      disabled={isSendingTestDigest}
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                    >
-                      {isSendingTestDigest ? (
-                        <div className="flex items-center">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                          Sending...
-                        </div>
-                      ) : (
-                        "Send Test Digest"
-                      )}
-                    </button>
-                    <span className="bg-orange-100 text-orange-800 text-sm font-medium px-3 py-1 rounded-full">
-                      {rssFeeds.length} {rssFeeds.length === 1 ? 'source' : 'sources'}
-                    </span>
-                  </>
-                )}
-              </div>
+              <span className="bg-orange-100 text-orange-800 text-sm font-medium px-3 py-1 rounded-full">
+                {rssFeeds?.length || 0} {(rssFeeds?.length || 0) === 1 ? 'source' : 'sources'}
+              </span>
             </div>
             <p className="text-gray-600">
               Manage your active information sources and monitor their status.
-              {rssFeeds && rssFeeds.length > 0 && (
-                <span className="block mt-1 text-sm text-blue-600">
-                  Use "Send Test Digest" to instantly generate and receive a sample digest email.
-                </span>
-              )}
             </p>
           </div>
+
+          {/* Hackathon Demo Section */}
+          {rssFeeds && rssFeeds.length > 0 && (
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6 mb-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-purple-900">Hackathon Demo</h3>
+                    <span className="bg-purple-100 text-purple-700 text-xs font-medium px-2 py-1 rounded-full">
+                      Live Demo
+                    </span>
+                  </div>
+                  <p className="text-purple-800 text-sm mb-4">
+                    Test our Convex + Resend integration! Generates a sample digest from your latest 5 feed items.
+                  </p>
+                  <button
+                    onClick={handleSendTestDigest}
+                    disabled={isSendingTestDigest}
+                    className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-blue-600 focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-sm"
+                  >
+                    {isSendingTestDigest ? (
+                      <div className="flex items-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Sending Demo...
+                      </div>
+                    ) : (
+                      "Send Test Digest"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Test Digest Success Message */}
           {testDigestSuccess && (
