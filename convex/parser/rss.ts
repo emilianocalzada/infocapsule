@@ -72,6 +72,8 @@ export const createFeed = internalAction({
             formData.append('content_selector', summarySelector);
         }
 
+        console.log("Creating feed with data:", formData);
+
         const response = await fetch('https://fetchrss.com/api/v2/feeds', {
             method: 'POST',
             headers: {
@@ -80,6 +82,7 @@ export const createFeed = internalAction({
             body: formData
         });
         const data = await response.json();
+        console.log(data);
 
         if (data.success) {
             await ctx.runMutation(internal.functions.rssFeeds.updateRssFeed, {
@@ -89,7 +92,7 @@ export const createFeed = internalAction({
                 status: "active",
             });
         } else {
-            console.error(`Failed to create feed: ${data.error}`);
+            console.error(`Failed to create feed: ${data}`);
 
             await ctx.runMutation(internal.functions.rssFeeds.updateRssFeed, {
                 feedId,

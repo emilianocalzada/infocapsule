@@ -43,6 +43,9 @@ export const createRssFeed = mutationWithAuth({
       await ctx.scheduler.runAfter(0, internal.parser.rss.createFeed, {
         feedId,
         url: args.url,
+        containerSelector: args.selectors?.containerSelector,
+        headlineSelector: args.selectors?.headlineSelector,
+        summarySelector: args.selectors?.summarySelector,
       });
     } catch (error) {
       console.error(error);
